@@ -48,7 +48,7 @@ CONFIDENCE_THRESHOLD = 0.35
 class TrashDetector(BaseDetector):
     name = "trash"
 
-    def __init__(self, model_path: str = "yolov8n.pt"):
+    def __init__(self, model_path: str = "yolov8l.pt"):
         log.info("Loading YOLO model: %s", model_path)
 
         try:

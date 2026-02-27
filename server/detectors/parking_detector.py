@@ -73,7 +73,7 @@ class IllegalParkingDetector(BaseDetector):
 
     def __init__(
         self,
-        model_path: str = "yolov8n.pt",
+        model_path: str = "yolov8m.pt",
         zones: Optional[List[List[Tuple[int, int]]]] = None,
         dwell_seconds: float = DWELL_SECONDS,
     ):
