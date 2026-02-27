@@ -1,0 +1,5 @@
+# ── Pi Node (install on Raspberry Pi) ──────────────────────────────────────
+# pip install -r requirements_pi.txt
+flask>=3.0
+opencv-python-headless>=4.8
+picamera2>=0.3          

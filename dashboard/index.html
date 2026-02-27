@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart City Surveillance</title>
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0d1117;
+            --panel: #161b22;
+            --border: #30363d;
+            --accent: #238636;
+            --red: #da3633;
+            --text: #c9d1d9;
+            --muted: #8b949e;
+            --font: "Inter", system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+
+        header .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: .5px
+        }
+
+        header .badge {
+            font-size: .72rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #fff;
+            margin-left: auto;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 16px;
+            padding: 16px
+        }
+
+        .feeds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .feed-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .feed-card .title {
+            padding: 8px 12px;
+            font-size: .82rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .feed-card .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        .feed-card img {
+            width: 100%;
+            display: block;
+            background: #000;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .feed-card .meta {
+            padding: 6px 12px;
+            font-size: .75rem;
+            color: var(--muted);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .4
+            }
+        }
+
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 16px
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .panel h3 {
+            font-size: .85rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: .85rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none
+        }
+
+        .stat-val {
+            font-weight: 700
+        }
+
+        .event-list {
+            max-height: 340px;
+            overflow-y: auto
+        }
+
+        .event {
+            display: flex;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: .8rem;
+        }
+
+        .event:last-child {
+            border-bottom: none
+        }
+
+        .event .tag {
+            flex-shrink: 0;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: .72rem;
+            font-weight: 600;
+            background: var(--red);
+            color: #fff;
+            align-self: flex-start;
+        }
+
+        .event .detail {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: .82rem;
+            text-align: center;
+            padding: 16px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <span></span>
+        <span class="logo">Smart City Surveillance</span>
+        <span class="badge" id="live-count">Loading…</span>
+    </header>
+
+    <main>
+
+        <section>
+            <div class="feeds-grid" id="feeds-grid">
+                <p class="empty">Waiting for camera stream…</p>
+            </div>
+        </section>
+
+        <aside>
+
+            <div class="panel">
+                <h3>Detection Stats</h3>
+                <div id="stats-list">
+                    <p class="empty">Loading…</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>⚠ Illegal Parking Events</h3>
+                <div class="event-list" id="events-list">
+                    <p class="empty">Loading…</p>
+                </div>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <script>
+        const API = "";
+
+        function refreshCameras() {
+            fetch(`${API}/api/cameras`)
+                .then(r => r.json())
+                .then(cameras => {
+                    document.getElementById("live-count").textContent =
+                        `${cameras.length} camera${cameras.length !== 1 ? "s" : ""} live`;
+
+                    const grid = document.getElementById("feeds-grid");
+                    grid.innerHTML = "";
+
+                    if (!cameras.length) {
+                        grid.innerHTML = '<p class="empty">No cameras available.</p>';
+                        return;
+                    }
+
+                    cameras.forEach(cam => {
+                        const card = document.createElement("div");
+                        card.className = "feed-card";
+                        card.innerHTML = `
+<div class="title">
+<span class="dot"></span>
+<span>${cam.camera_id}</span>
+</div>
+<img src="${API}/api/cameras/${cam.camera_id}/feed" />
+<div class="meta">
+FPS: ${cam.fps} | Detections: ${cam.detections} | Errors: ${cam.errors}
+</div>
+`;
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(console.error);
+        }
+
+        function refreshStats() {
+            fetch(`${API}/api/stats`)
+                .then(r => r.json())
+                .then(data => {
+                    const el = document.getElementById("stats-list");
+
+                    if (!data.total) {
+                        el.innerHTML = '<p class="empty">No detections yet.</p>';
+                        return;
+                    }
+
+                    const rows = Object.entries(data.by_label)
+                        .map(([l, c]) =>
+                            `<div class="stat-row">
+<span>${l}</span>
+<span class="stat-val">${c}</span>
+</div>`
+                        ).join("");
+
+                    el.innerHTML =
+                        `<div class="stat-row">
+<span><strong>Total</strong></span>
+<span class="stat-val">${data.total}</span>
+</div>`+ rows;
+                })
+                .catch(console.error);
+        }
+
+        function refreshEvents() {
+            fetch(`${API}/api/parking/events?resolved=false&limit=30`)
+                .then(r => r.json())
+                .then(events => {
+                    const el = document.getElementById("events-list");
+
+                    if (!events.length) {
+                        el.innerHTML = '<p class="empty">No open events </p>';
+                        return;
+                    }
+
+                    el.innerHTML = events.map(e => `
+<div class="event">
+<span class="tag">PARK</span>
+<div class="detail">
+<strong>${e.camera_id}</strong><br>
+${e.meta?.vehicle_label || "vehicle"} — dwell ${e.meta?.dwell_seconds}s<br>
+<span style="color:#8b949e">
+${new Date(e.timestamp).toLocaleString()}
+</span>
+</div>
+</div>
+`).join("");
+                })
+                .catch(console.error);
+        }
+
+        refreshCameras();
+        refreshStats();
+        refreshEvents();
+
+        setInterval(refreshCameras, 4000);
+        setInterval(refreshStats, 10000);
+        setInterval(refreshEvents, 8000);
+    </script>
+
+</body>
+
+</html>
